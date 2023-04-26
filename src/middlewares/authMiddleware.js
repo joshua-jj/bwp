@@ -9,8 +9,8 @@ const authenticateToken = (req, res, next) => {
     const token = authHeader.split(' ')[1];
     try {
       const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-      const { userID, firstName } = decoded;
-      req.user = { userID, firstName };
+      const { operatorId, email } = decoded;
+      req.user = { operatorId, email };
       next();
     } catch (err) {
       throw new AuthorizationError('Not authorized to access this route');
