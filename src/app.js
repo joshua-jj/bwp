@@ -12,8 +12,7 @@ cloudinary.config({
 });
 
 const authRouter = require('./routes/authRoute');
-// const todosRouter = require('./routes/todosRoute');
-// const tasksRouter = require('./routes/tasksRoute');
+const productsRouter = require('./routes/productsRoute');
 const notFoundMiddleware = require('./middlewares/notFoundMiddleware');
 const errorHandlerMiddleware = require('./middlewares/errorHandlerMiddleware');
 const app = express();
@@ -26,9 +25,7 @@ app.use(express.urlencoded({ extended: false }));
 app.use(fileUpload({ useTempFiles: true }));
 
 app.use('/api/v1', authRouter);
-// app.use('/api/v1/todos', todosRouter);
-// app.use('/api/v1/todos', tasksRouter);
-// app.use('/api/v1/search', tasksRouter);
+app.use('/api/v1', productsRouter);
 app.use(notFoundMiddleware);
 app.use(errorHandlerMiddleware);
 

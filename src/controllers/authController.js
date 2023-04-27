@@ -7,20 +7,29 @@ const {
   UnauthorizedError,
   ForbiddenError,
 } = require('../errors');
-const { stateData, stateLgasData } = require('../statesLgas');
+const { states, statesAndLgas } = require('../data');
 
 // Function to sign up users
 
 const signUp = async (req, res) => {
   const { email, password, confirmPassword } = req.body;
-  const regex = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/;
+  const regexEmail = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/;
+  const regexPassword = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\da-zA-Z])/;
 
   if (!email || !password || !confirmPassword) {
     throw new BadRequestError('Please provide all fields.');
   }
 
-  if (!regex.test(email)) {
+  if (!regexEmail.test(email)) {
     throw new BadRequestError('Please provide a valid email');
+  }
+
+  if (password.length < 8) {
+    throw new BadRequestError('Password should contain at least 8 characters');
+  }
+
+  if (!regexPassword.test(password)) {
+    throw new BadRequestError('Password should contain at least 1 uppercase letter, 1 lowercase letter and 1 special character');
   }
 
   let queryOperator = `SELECT * FROM operators where email='${email}'`;
@@ -119,9 +128,9 @@ const completeProfile = async (req, res) => {
   if (result.length == 1)
     throw new BadRequestError('Phone Number already exists.');
 
-  if (!stateData.includes(state)) throw new BadRequestError(`State is invalid`);
+  if (!states.includes(state)) throw new BadRequestError(`State is invalid`);
 
-  if (!stateLgasData[state].includes(lga))
+  if (!statesAndLgas[state].includes(lga))
     throw new BadRequestError(`${lga} LGA does not belong to ${state} State`);
 
   let queryOperatorId = `SELECT id FROM operators WHERE email='${email}'`;
@@ -142,14 +151,25 @@ const completeProfile = async (req, res) => {
 
 const signUpAdmin = async (req, res) => {
   const { email, password, confirmPassword } = req.body;
-  const regex = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/;
+  const regexEmail = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/;
+  const regexPassword = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\da-zA-Z])/;
 
   if (!email || !password || !confirmPassword) {
     throw new BadRequestError('Please provide all fields.');
   }
 
-  if (!regex.test(email)) {
+  if (!regexEmail.test(email)) {
     throw new BadRequestError('Please provide a valid email');
+  }
+
+  if (password.length < 8) {
+    throw new BadRequestError('Password should contain at least 8 characters');
+  }
+
+  if (!regexPassword.test(password)) {
+    throw new BadRequestError(
+      'Password should contain at least 1 uppercase letter, 1 lowercase letter and 1 special character'
+    );
   }
 
   let queryAdmin = `SELECT * FROM admins where email='${email}'`;
@@ -175,7 +195,7 @@ const signUpAdmin = async (req, res) => {
   res.status(StatusCodes.CREATED).json({ mssg: 'Admin created', token });
 };
 
-// Function to log in users
+// Function to log in admins
 
 const loginAdmin = async (req, res) => {
   const { email, password } = req.body;
@@ -207,16 +227,20 @@ const verifyOperator = async (req, res) => {
     throw new ForbiddenError('You are not allowed to access this route');
   }
 
-  let queryVerified = `SELECT verified FROM operators_biodata WHERE email='${email}'`;
+  let queryVerified = `SELECT * FROM operators_biodata WHERE email='${email}'`;
   let [[result]] = await db.query(queryVerified);
 
-  if (result.verified === 1) {
+  if (verified && result.verified) {
     throw new BadRequestError('Operator already verified.');
   }
 
-  let queryUpdateVerified = `UPDATE operators_biodata SET verified=${verified} WHERE email='${email}'`;
+  const operatorId = String(result.operator_id);
+  const paddedId = operatorId.padStart(4, 0);
+  const uniqueOperatorId = `${paddedId}-OP`;
+
+  let queryUpdateVerified = `UPDATE operators_biodata SET verified=${verified}, unique_operator_id='${uniqueOperatorId}' WHERE email='${email}'`;
   await db.query(queryUpdateVerified);
-  res.status(StatusCodes.OK).json({ mssg: 'Operator verified' });
+  res.status(StatusCodes.OK).json({ mssg: 'Success' });
 };
 
 module.exports = {
