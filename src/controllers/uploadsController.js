@@ -1,17 +1,9 @@
-const db = require('../db/connect');
-const path = require('path');
 const { unlinkSync } = require('fs');
 const { StatusCodes } = require('http-status-codes');
 const { BadRequestError } = require('../errors');
 const cloudinary = require('cloudinary').v2;
 
 const uploadPhoto = async (req, res) => {
-  // const { todoID } = req.params;
-  // const { userID } = req.user;
-
-  // // Verify that todo belongs to this user
-  // await verifyTodo(todoID, userID);
-
   if (!req.files) throw new BadRequestError('No file uploaded');
   const profilePhoto = req.files.image;
   if (!profilePhoto.mimetype.startsWith('image')) {

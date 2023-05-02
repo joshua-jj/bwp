@@ -1,16 +1,16 @@
 const db = require('../db/connect');
-const jwt = require('jsonwebtoken');
 const { StatusCodes } = require('http-status-codes');
-const {
-  BadRequestError,
-  UnauthorizedError,
-  ForbiddenError,
-} = require('../errors');
+const { BadRequestError, ForbiddenError } = require('../errors');
 const { products } = require('../data');
 
 const selectProduct = async (req, res) => {
   const { product, seed } = req.body;
-  const { id } = req.user;
+  const { id, role } = req.user;
+
+  if (role !== 'operator') {
+    throw new ForbiddenError('You are not allowed to access this route');
+  }
+
   let queryOperator = `SELECT * FROM operators_biodata WHERE operator_id=${id}`;
   const [[result]] = await db.query(queryOperator);
 
@@ -23,7 +23,7 @@ const selectProduct = async (req, res) => {
   }
 
   if (!products[product].includes(seed)) {
-    throw new BadRequestError("Seed does not belong to product");
+    throw new BadRequestError('Seed does not belong to product');
   }
 
   res.status(StatusCodes.CREATED).json({ mssg: 'Success' });
