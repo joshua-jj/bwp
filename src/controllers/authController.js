@@ -29,7 +29,9 @@ const signUp = async (req, res) => {
   }
 
   if (!regexPassword.test(password)) {
-    throw new BadRequestError('Password should contain at least 1 uppercase letter, 1 lowercase letter and 1 special character');
+    throw new BadRequestError(
+      'Password should contain at least 1 uppercase letter, 1 lowercase letter and 1 special character'
+    );
   }
 
   let queryOperator = `SELECT * FROM operators where email='${email}'`;
