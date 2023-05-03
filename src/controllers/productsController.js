@@ -15,7 +15,7 @@ const selectProduct = async (req, res) => {
   const [[result]] = await db.query(queryOperator);
 
   if (!result.verified) {
-    throw new BadRequestError('Registration not yet completed');
+    throw new BadRequestError('Registration not yet completed. Awaiting verification');
   }
 
   if (product !== 'maize' && product !== 'rice') {
