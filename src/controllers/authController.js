@@ -7,9 +7,8 @@ const {
   UnauthorizedError,
   ForbiddenError,
 } = require('../errors');
-const { states, statesAndLgas } = require('../data');
 
-// Function to sign up users
+// Function to sign up operators
 
 const signUp = async (req, res) => {
   const { email, password, confirmPassword } = req.body;
@@ -24,17 +23,19 @@ const signUp = async (req, res) => {
     throw new BadRequestError('Please provide a valid email');
   }
 
+  // Confirm if password contains at least 8 characters
   if (password.length < 8) {
     throw new BadRequestError('Password should contain at least 8 characters');
   }
 
+  // Confirm if password contains at least 1 uppercase letter, 1 lowercase letter and 1 special character
   if (!regexPassword.test(password)) {
     throw new BadRequestError(
       'Password should contain at least 1 uppercase letter, 1 lowercase letter and 1 special character'
     );
   }
 
-  let queryOperator = `SELECT * FROM operators where email='${email}'`;
+  let queryOperator = `SELECT * FROM users where email='${email}' and role='operator'`;
   let [result] = await db.query(queryOperator);
 
   if (result.length == 1) throw new BadRequestError('Email already exists.');
@@ -43,11 +44,11 @@ const signUp = async (req, res) => {
     throw new BadRequestError("Passwords don't match.");
 
   const hashedPassword = await bcrypt.hash(password, 10);
-  let queryInsertOperator = `INSERT INTO operators (email, password) VALUES ('${email}', '${hashedPassword}')`;
+  let queryInsertOperator = `INSERT INTO users (email, password, role) VALUES ('${email}', '${hashedPassword}', 'operator')`;
 
   await db.query(queryInsertOperator);
 
-  let query = `SELECT * FROM operators WHERE email='${email}'`;
+  let query = `SELECT * FROM users WHERE email='${email}' and role='operator'`;
   [[result]] = await db.query(query);
   const { id } = result;
   const role = 'operator';
@@ -57,14 +58,14 @@ const signUp = async (req, res) => {
   res.status(StatusCodes.CREATED).json({ mssg: 'User created', token });
 };
 
-// Function to log in users
+// Function to log in operators
 
 const login = async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password)
     throw new BadRequestError('Please provide email and password');
 
-  let query = `SELECT * FROM operators WHERE email='${email}'`;
+  let query = `SELECT * FROM users WHERE email='${email}' and role='operator'`;
   const [[result]] = await db.query(query);
   if (!result) throw new UnauthorizedError('Invalid username or password');
 
@@ -80,6 +81,8 @@ const login = async (req, res) => {
     .status(StatusCodes.OK)
     .json({ mssg: `${email} logged in successfully`, token });
 };
+
+// Function for operators to complete profile
 
 const completeProfile = async (req, res) => {
   const {
@@ -130,22 +133,33 @@ const completeProfile = async (req, res) => {
   if (result.length == 1)
     throw new BadRequestError('Phone Number already exists.');
 
-  if (!states.includes(state)) throw new BadRequestError(`State is invalid`);
-
-  if (!statesAndLgas[state].includes(lga))
-    throw new BadRequestError(`${lga} LGA does not belong to ${state} State`);
-
-  let queryOperatorId = `SELECT id FROM operators WHERE email='${email}'`;
+  let queryOperatorId = `SELECT id FROM users WHERE email='${email}' and role='operator'`;
   let queryStateId = `SELECT id FROM states WHERE state='${state}'`;
   let queryLgaId = `SELECT id FROM lgas WHERE lga='${lga}'`;
+  let queryLgaStateId = `SELECT state_id FROM lgas WHERE lga='${lga}'`;
 
-  const [[{ id: operatorId }]] = await db.query(queryOperatorId);
-  const [[{ id: stateId }]] = await db.query(queryStateId);
-  const [[{ id: lgaId }]] = await db.query(queryLgaId);
+  const [[{ id: userId }]] = await db.query(queryOperatorId);
+  // console.log('userid',userId);
+  const [[stateIdQuery]] = await db.query(queryStateId);
+  const [[lgaIdQuery]] = await db.query(queryLgaId);
 
-  let queryInsertOperator = `INSERT INTO operators_biodata (operator_id, first_name, last_name, phone_number, email, nationality, state_id, lga_id, sex, marital_status, date_of_birth, nin, photo) VALUES (${operatorId}, '${firstName}', '${lastName}', '${phoneNumber}', '${email}', '${nationality}', ${stateId}, ${lgaId}, '${sex}', '${maritalStatus}', '${dateOfBirth}', '${nin}', '${photo}')`;
+  // console.log('State id', stateId);
 
-  await db.query(queryInsertOperator);
+  // Verify valid state and LGA
+  if (!stateIdQuery) throw new BadRequestError(`State is invalid`);
+  if (!lgaIdQuery) throw new BadRequestError(`LGA is invalid`);
+
+  const { id: stateId } = stateIdQuery;
+  const { id: lgaId } = lgaIdQuery;
+  const [[{ state_id: lgaStateId }]] = await db.query(queryLgaStateId);
+
+  // Verify if LGA belongs to state
+  if (stateId !== lgaStateId)
+    throw new BadRequestError(`${lga} LGA does not belong to ${state} State`);
+
+  let queryInsertOperatorData = `INSERT INTO operators_biodata (user_id, first_name, last_name, phone_number, email, nationality, state_id, lga_id, sex, marital_status, date_of_birth, nin, photo) VALUES (${userId}, '${firstName}', '${lastName}', '${phoneNumber}', '${email}', '${nationality}', ${stateId}, ${lgaId}, '${sex}', '${maritalStatus}', '${dateOfBirth}', '${nin}', '${photo}')`;
+
+  await db.query(queryInsertOperatorData);
   res.status(StatusCodes.CREATED).json({ mssg: 'Awaiting verification' });
 };
 
@@ -164,17 +178,19 @@ const signUpAdmin = async (req, res) => {
     throw new BadRequestError('Please provide a valid email');
   }
 
+  // Confirm if password contains at least 8 characters
   if (password.length < 8) {
     throw new BadRequestError('Password should contain at least 8 characters');
   }
 
+  // Confirm if password contains at least 1 uppercase letter, 1 lowercase letter and 1 special character
   if (!regexPassword.test(password)) {
     throw new BadRequestError(
       'Password should contain at least 1 uppercase letter, 1 lowercase letter and 1 special character'
     );
   }
 
-  let queryAdmin = `SELECT * FROM admins where email='${email}'`;
+  let queryAdmin = `SELECT * FROM users where email='${email}' and role='admin'`;
   let [result] = await db.query(queryAdmin);
 
   if (result.length == 1) throw new BadRequestError('Email already exists.');
@@ -183,11 +199,11 @@ const signUpAdmin = async (req, res) => {
     throw new BadRequestError("Passwords don't match.");
 
   const hashedPassword = await bcrypt.hash(password, 10);
-  let queryInsertAdmin = `INSERT INTO admins (email, password) VALUES ('${email}', '${hashedPassword}')`;
+  let queryInsertAdmin = `INSERT INTO users (email, password, role) VALUES ('${email}', '${hashedPassword}', 'admin')`;
 
   await db.query(queryInsertAdmin);
 
-  let query = `SELECT * FROM admins WHERE email='${email}'`;
+  let query = `SELECT * FROM users WHERE email='${email}' and role='admin'`;
   [[result]] = await db.query(query);
   const { id } = result;
   const role = 'admin';
@@ -204,7 +220,7 @@ const loginAdmin = async (req, res) => {
   if (!email || !password)
     throw new BadRequestError('Please provide email and password');
 
-  let query = `SELECT * FROM admins WHERE email='${email}'`;
+  let query = `SELECT * FROM users WHERE email='${email}' and role='admin'`;
   const [[result]] = await db.query(query);
   if (!result) throw new UnauthorizedError('Invalid username or password');
 
@@ -236,12 +252,12 @@ const verifyOperator = async (req, res) => {
     throw new BadRequestError('Operator already verified.');
   }
 
-  const operatorId = String(result.operator_id);
+  const operatorId = String(result.id);
   const paddedId = operatorId.padStart(4, 0);
   const uniqueOperatorId = `${paddedId}-OP`;
 
-  let queryUpdateVerified = `UPDATE operators_biodata SET verified=${verified}, unique_operator_id='${uniqueOperatorId}' WHERE email='${email}'`;
-  await db.query(queryUpdateVerified);
+  let queryUpdateOperator = `UPDATE operators_biodata SET verified=${verified}, unique_operator_id='${uniqueOperatorId}' WHERE email='${email}'`;
+  await db.query(queryUpdateOperator);
   res.status(StatusCodes.OK).json({ mssg: 'Success' });
 };
 
