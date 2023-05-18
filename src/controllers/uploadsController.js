@@ -1,9 +1,15 @@
 const { unlinkSync } = require('fs');
 const { StatusCodes } = require('http-status-codes');
-const { BadRequestError } = require('../errors');
+const { BadRequestError, ForbiddenError } = require('../errors');
 const cloudinary = require('cloudinary').v2;
 
-const uploadPhoto = async (req, res) => {
+const uploadOperatorPhoto = async (req, res) => {
+  const { role } = req.user;
+
+  if (role !== 'operator') {
+    throw new ForbiddenError('You are not allowed to access this route');
+  }
+
   if (!req.files) throw new BadRequestError('No file uploaded');
   const profilePhoto = req.files.image;
   if (!profilePhoto.mimetype.startsWith('image')) {
@@ -11,17 +17,17 @@ const uploadPhoto = async (req, res) => {
   }
   const maxFileSize = process.env.MAX_FILE_SIZE / (1024 * 1024);
 
-    // Check if image size limit is exceeded
+  // Check if image size limit is exceeded
   if (profilePhoto.size > process.env.MAX_FILE_SIZE) {
     throw new BadRequestError(`Photo should not be more than ${maxFileSize}MB`);
   }
-    const { tempFilePath } = profilePhoto;
-    const result = await cloudinary.uploader.upload(tempFilePath, {
-      use_filename: true,
-      folder: 'BWP',
-    });
-    unlinkSync(tempFilePath);
+  const { tempFilePath } = profilePhoto;
+  const result = await cloudinary.uploader.upload(tempFilePath, {
+    use_filename: true,
+    folder: 'BWP/Operators Photos/',
+  });
+  unlinkSync(tempFilePath);
   res.status(StatusCodes.OK).json({ Photo: result.secure_url });
 };
 
-module.exports = { uploadPhoto };
+module.exports = { uploadOperatorPhoto };

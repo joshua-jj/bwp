@@ -4,19 +4,10 @@ const { BadRequestError, ForbiddenError } = require('../errors');
 
 const selectProduct = async (req, res) => {
   const { product, seed } = req.body;
-  const { id, email, role } = req.user;
+  const { email, role } = req.user;
 
   if (role !== 'operator') {
     throw new ForbiddenError('You are not allowed to access this route');
-  }
-
-  let queryOperator = `SELECT * FROM operators_biodata WHERE user_id=${id}`;
-  const [[result]] = await db.query(queryOperator);
-
-  if (!result.verified) {
-    throw new BadRequestError(
-      'Registration not yet completed. Awaiting verification'
-    );
   }
 
   let queryProductId = `SELECT id FROM products WHERE product='${product}'`;
@@ -26,7 +17,6 @@ const selectProduct = async (req, res) => {
   const [[productIdQuery]] = await db.query(queryProductId);
   const [[seedIdQuery]] = await db.query(querySeedId);
 
-
   // Verify valid state and LGA
   if (!productIdQuery) throw new BadRequestError('Invalid product selected');
   if (!seedIdQuery) throw new BadRequestError(`Invalid seed selected`);
@@ -35,12 +25,13 @@ const selectProduct = async (req, res) => {
   const { id: seedId } = seedIdQuery;
   const [[{ product_id: seedProductId }]] = await db.query(querySeedProductId);
 
-  if (productId !== seedProductId) throw new BadRequestError(`${seed} does not belong to ${product}`);
+  if (productId !== seedProductId)
+    throw new BadRequestError(`${seed} does not belong to ${product}`);
 
-  let queryUpdateOperator = `UPDATE operators_biodata SET product_id=${productId}, seed_id='${seedId}' WHERE email='${email}'`;
+  let queryUpdateOperator = `UPDATE operators_details SET product_id=${productId}, seed_id='${seedId}' WHERE email='${email}'`;
   await db.query(queryUpdateOperator);
 
-  res.status(StatusCodes.CREATED).json({ mssg: 'Success' });
+  res.status(StatusCodes.CREATED).json({ message: 'Success' });
 };
 
 module.exports = { selectProduct };
