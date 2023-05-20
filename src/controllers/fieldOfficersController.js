@@ -126,4 +126,18 @@ const getAllFieldOfficers = async (req, res) => {
   res.status(StatusCodes.OK).json({ message: 'Success', fieldOfficers });
 };
 
-module.exports = { recruitFieldOfficer, getAllFieldOfficers };
+const getAllFieldOfficersAdmin = async (req, res) => {
+  const { role } = req.user;
+  
+  if (role !== 'admin') {
+    throw new ForbiddenError('You are not allowed to access this route');
+  }
+
+  res.status(StatusCodes.OK).json({ message: 'Success' });
+};
+
+module.exports = {
+  recruitFieldOfficer,
+  getAllFieldOfficers,
+  getAllFieldOfficersAdmin
+};
