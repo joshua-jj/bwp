@@ -3,7 +3,7 @@ const {
   completeOperatorProfile,
   verifyOperator,
 } = require('../controllers/usersController');
-const { uploadOperatorPhoto } = require('../controllers/uploadsController');
+const { uploadImage } = require('../controllers/uploadsController');
 const authenticateToken = require('../middlewares/authMiddleware');
 const router = express.Router();
 
@@ -12,7 +12,7 @@ router
   .post(authenticateToken, completeOperatorProfile);
 router.route('/verifyOperator').post(authenticateToken, verifyOperator);
 router
-  .route('/completeProfile/uploadOperatorPhoto')
-  .post(authenticateToken, uploadOperatorPhoto);
+  .route('/completeProfile/uploadImage')
+  .post(authenticateToken, uploadImage);
 
 module.exports = router;

@@ -4,8 +4,7 @@ const { BadRequestError, ForbiddenError } = require('../errors');
 
 const completeOperatorProfile = async (req, res) => {
   const {
-    firstName,
-    lastName,
+    fullName,
     phoneNumber,
     nationality,
     state,
@@ -24,8 +23,7 @@ const completeOperatorProfile = async (req, res) => {
   }
 
   if (
-    !firstName ||
-    !lastName ||
+    !fullName ||
     !phoneNumber ||
     !nationality ||
     !state ||
@@ -57,11 +55,8 @@ const completeOperatorProfile = async (req, res) => {
   let queryLgaStateId = `SELECT state_id FROM lgas WHERE lga='${lga}'`;
 
   const [[{ id: userId }]] = await db.query(queryOperatorId);
-  // console.log('userid',userId);
   const [[stateIdQuery]] = await db.query(queryStateId);
   const [[lgaIdQuery]] = await db.query(queryLgaId);
-
-  // console.log('State id', stateId);
 
   // Verify valid state and LGA
   if (!stateIdQuery) throw new BadRequestError(`State is invalid`);
@@ -75,9 +70,12 @@ const completeOperatorProfile = async (req, res) => {
   if (stateId !== lgaStateId)
     throw new BadRequestError(`${lga} LGA does not belong to ${state} State`);
 
-  let queryInsertOperatorData = `INSERT INTO operators_details (user_id, first_name, last_name, phone_number, email, nationality, state_id, lga_id, sex, marital_status, date_of_birth, nin, photo) VALUES (${userId}, '${firstName}', '${lastName}', '${phoneNumber}', '${email}', '${nationality}', ${stateId}, ${lgaId}, '${sex}', '${maritalStatus}', '${dateOfBirth}', '${nin}', '${photo}')`;
+  let querySexId = `SELECT id FROM sex WHERE sex='${sex}'`;
+  const [[{ id: sexId }]] = await db.query(querySexId);
 
-  await db.query(queryInsertOperatorData);
+  let queryInsertOperatorDetails = `INSERT INTO operators_details (user_id, full_name, phone_number, email, nationality, state_id, lga_id, sex_id, marital_status, date_of_birth, nin, photo) VALUES (${userId}, '${fullName}', '${phoneNumber}', '${email}', '${nationality}', ${stateId}, ${lgaId}, ${sexId}, '${maritalStatus}', '${dateOfBirth}', '${nin}', '${photo}')`;
+
+  await db.query(queryInsertOperatorDetails);
   res.status(StatusCodes.CREATED).json({ message: 'Awaiting verification' });
 };
 

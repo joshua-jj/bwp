@@ -7,9 +7,9 @@ const checkVerification = async (req, res, next) => {
   let queryOperator = `SELECT * FROM operators_details WHERE user_id=${id}`;
   const [[result]] = await db.query(queryOperator);
 
-  if (!result.verified) {
+  if (!result || !result.verified) {
     throw new ForbiddenError(
-      'Awaiting verification. You cannot perform this operation.'
+      'You have not been verified. You cannot perform this operation.'
     );
   }
 

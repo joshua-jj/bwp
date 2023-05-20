@@ -3,7 +3,7 @@ const { StatusCodes } = require('http-status-codes');
 const { BadRequestError, ForbiddenError } = require('../errors');
 const cloudinary = require('cloudinary').v2;
 
-const uploadOperatorPhoto = async (req, res) => {
+const uploadImage = async (req, res) => {
   const { role } = req.user;
 
   if (role !== 'operator') {
@@ -19,15 +19,15 @@ const uploadOperatorPhoto = async (req, res) => {
 
   // Check if image size limit is exceeded
   if (profilePhoto.size > process.env.MAX_FILE_SIZE) {
-    throw new BadRequestError(`Photo should not be more than ${maxFileSize}MB`);
+    throw new BadRequestError(`Image should not be more than ${maxFileSize}MB`);
   }
   const { tempFilePath } = profilePhoto;
   const result = await cloudinary.uploader.upload(tempFilePath, {
     use_filename: true,
-    folder: 'BWP/Operators Photos/',
+    folder: 'BWP/Images/',
   });
   unlinkSync(tempFilePath);
   res.status(StatusCodes.OK).json({ Photo: result.secure_url });
 };
 
-module.exports = { uploadOperatorPhoto };
+module.exports = { uploadImage };
