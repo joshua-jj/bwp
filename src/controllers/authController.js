@@ -2,10 +2,7 @@ const db = require('../db/connect');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const { StatusCodes } = require('http-status-codes');
-const {
-  BadRequestError,
-  UnauthorizedError,
-} = require('../errors');
+const { BadRequestError, UnauthorizedError } = require('../errors');
 
 // Function to sign up operators
 
@@ -155,9 +152,33 @@ const loginAdmin = async (req, res) => {
     .json({ message: `${email} logged in successfully`, token });
 };
 
+const loginTest = async (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    throw new BadRequestError('Please provide all fields.');
+  }
+
+  let queryGetCandidate = `SELECT * FROM sessions WHERE field_officer_email = '${email}'`;
+  const [resultQueryCandidate] = await db.query(queryGetCandidate);
+
+  if (!resultQueryCandidate.length)
+    throw new BadRequestError('Invalid email');
+  
+  if (password !== resultQueryCandidate[0].password) throw new BadRequestError('Invalid password');
+  const id = null;
+  const role = 'candidate';
+
+  const token = jwt.sign({ id, email, role }, process.env.ACCESS_TOKEN_SECRET, {
+    expiresIn: process.env.ACCESS_TOKEN_LIFETIME,
+  });
+  res.status(StatusCodes.OK).json({ message: 'Success', status: 200, token });
+};
+
 module.exports = {
   signUp,
   login,
   signUpAdmin,
   loginAdmin,
+  loginTest,
 };

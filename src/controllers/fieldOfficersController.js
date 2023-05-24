@@ -206,18 +206,111 @@ const generateTestQuestions = async (req, res) => {
 
   res.status(StatusCodes.CREATED).json({
     message: 'Success',
-    fieldOfficerName
+    fieldOfficerName,
   });
 };
 
-const loginTest = async (req, res) => {
-  res.status(StatusCodes.OK).json({message: 'Success', status: 200})
-}
+const getTestQuestions = async (req, res) => {
+  const { email, role } = req.user;
 
+  const questions = [];
+
+  if (role !== 'candidate') {
+    throw new ForbiddenError('You are not allowed to access this route');
+  }
+
+  let queryGetCandidate = `SELECT * FROM sessions WHERE field_officer_email = '${email}'`;
+  const [resultQueryCandidate] = await db.query(queryGetCandidate);
+
+  const [{ id: sessionId, test_score: testScore }] = resultQueryCandidate;
+
+  if (testScore !== null) {
+    throw new BadRequestError('You have already taken this test');
+  }
+
+  let queryGetCandidateQuestion = `SELECT * FROM sessions_questions WHERE session_id = '${sessionId}'`;
+  const [resultQueryQuestion] = await db.query(queryGetCandidateQuestion);
+
+  for (const { question_id: questionId } of resultQueryQuestion) {
+    let queryQuestions = `
+      SELECT field_officers_questions.id, field_officers_questions.question,  field_officers_questions.option1, field_officers_questions.option2, field_officers_questions.option3,
+      field_officers_questions.option4, field_officers_questions.option5, question_categories.category
+      FROM field_officers_questions JOIN question_categories ON question_categories.id = field_officers_questions.category_id
+      WHERE field_officers_questions.id = ${questionId}
+    `;
+    const [[result]] = await db.query(queryQuestions);
+    questions.push(result);
+  }
+
+  res.status(StatusCodes.OK).json({ message: 'Success', questions });
+};
+
+const submitTestAnswers = async (req, res) => {
+  const { email, role } = req.user;
+
+  const correctAnswers = [];
+  const candidateAnswers = [];
+  let score = 0;
+
+  if (role !== 'candidate') {
+    throw new ForbiddenError('You are not allowed to access this route');
+  }
+
+  let queryGetCandidate = `SELECT * FROM sessions WHERE field_officer_email = '${email}'`;
+  const [resultQueryCandidate] = await db.query(queryGetCandidate);
+
+  const [{ id: sessionId, test_score: testScore }] = resultQueryCandidate;
+
+  if (testScore !== null) {
+    throw new BadRequestError('You have already taken this test');
+  }
+
+  let queryGetCandidateQuestion = `SELECT * FROM sessions_questions WHERE session_id = '${sessionId}'`;
+  const [resultQueryQuestion] = await db.query(queryGetCandidateQuestion);
+
+  for (const { question_id: questionId } of resultQueryQuestion) {
+    let queryQuestions = `SELECT * FROM field_officers_questions WHERE id = ${questionId}`;
+    const [[result]] = await db.query(queryQuestions);
+    correctAnswers.push(result.answer);
+  }
+  candidateAnswers.push(...Object.values(req.body));
+
+  for (let i = 0; i < correctAnswers.length; i++) {
+    if (candidateAnswers[i] === correctAnswers[i]) {
+      score++;
+    }
+  }
+
+  let queryUpdateScore = `UPDATE sessions SET test_score = ${score} where id=${sessionId}`;
+  await db.query(queryUpdateScore);
+
+  res.status(StatusCodes.OK).json({
+    message: 'Success',
+    status: 200,
+    candidateAnswers,
+  });
+};
+
+const getTestScore = async (req, res) => {
+  const { email } = req.body;
+  let queryGetCandidate = `SELECT * FROM sessions WHERE field_officer_email = '${email}'`;
+  const [resultQueryCandidate] = await db.query(queryGetCandidate);
+
+  if (!resultQueryCandidate.length)
+    throw new BadRequestError('No field officer exists with this email');
+
+  const [{ test_score: testScore }] = resultQueryCandidate;
+
+  res
+    .status(StatusCodes.OK)
+    .json({ message: 'Success', status: 200, testScore });
+};
 module.exports = {
   recruitFieldOfficer,
   getAllFieldOfficers,
   getAllFieldOfficersAdmin,
   generateTestQuestions,
-  loginTest,
+  getTestQuestions,
+  submitTestAnswers,
+  getTestScore,
 };
