@@ -14,6 +14,7 @@ const authenticateToken = require('../middlewares/authMiddleware');
 const {
   restrictAccessOperator,
   restrictAccessAdmin,
+  restrictAccessTestCandidate,
 } = require('../middlewares/accessRestrictionMiddleware');
 
 const router = express.Router();
@@ -38,11 +39,11 @@ router
 
 router
   .route('/fieldOfficers/test/questions')
-  .get(authenticateToken, getTestQuestions);
+  .get(authenticateToken, restrictAccessTestCandidate, getTestQuestions);
 
 router
   .route('/fieldOfficers/test/submitTestAnswers')
-  .patch(authenticateToken, submitTestAnswers);
+  .patch(authenticateToken,restrictAccessTestCandidate, submitTestAnswers);
 
 
 module.exports = router;

@@ -30,4 +30,18 @@ const restrictAccessAdmin = async (req, res, next) => {
   next();
 };
 
-module.exports = { restrictAccessOperator, restrictAccessAdmin };
+const restrictAccessTestCandidate = async (req, res, next) => {
+  const { role } = req.user;
+
+  if (role !== 'candidate') {
+    throw new ForbiddenError('You are not allowed to access this route');
+  }
+
+  next();
+};
+
+module.exports = {
+  restrictAccessOperator,
+  restrictAccessAdmin,
+  restrictAccessTestCandidate,
+};

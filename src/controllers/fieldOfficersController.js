@@ -223,13 +223,9 @@ const generateTestQuestions = async (req, res) => {
 };
 
 const getTestQuestions = async (req, res) => {
-  const { email, role } = req.user;
+  const { email } = req.user;
 
   const questions = [];
-
-  if (role !== 'candidate') {
-    throw new ForbiddenError('You are not allowed to access this route');
-  }
 
   let queryGetCandidate = `SELECT * FROM sessions WHERE field_officer_email = '${email}'`;
   const [resultQueryCandidate] = await db.query(queryGetCandidate);
@@ -258,15 +254,11 @@ const getTestQuestions = async (req, res) => {
 };
 
 const submitTestAnswers = async (req, res) => {
-  const { email, role } = req.user;
+  const { email } = req.user;
 
   const correctAnswers = [];
   const candidateAnswers = [];
   let score = 0;
-
-  if (role !== 'candidate') {
-    throw new ForbiddenError('You are not allowed to access this route');
-  }
 
   let queryGetCandidate = `SELECT * FROM sessions WHERE field_officer_email = '${email}'`;
   const [resultQueryCandidate] = await db.query(queryGetCandidate);
