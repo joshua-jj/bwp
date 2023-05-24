@@ -37,7 +37,7 @@ router
 
 
 router
-  .route('/admin/fieldOfficers/test/questions')
+  .route('/fieldOfficers/test/questions')
   .get(authenticateToken, getTestQuestions);
 
 router

@@ -164,8 +164,7 @@ const generateTestQuestions = async (req, res) => {
 
   let queryGetFieldOfficer = `SELECT * FROM field_officers_details WHERE email = '${email}'`;
   const [resultFieldOfficer] = await db.query(queryGetFieldOfficer);
-  const [{ full_name: fieldOfficerName }] = resultFieldOfficer;
-
+  
   if (!resultFieldOfficer.length)
     throw new BadRequestError('No field officer exists with this email');
 
@@ -176,6 +175,9 @@ const generateTestQuestions = async (req, res) => {
     throw new BadRequestError(
       'Test has already been generated for this field officer'
     );
+  
+  const [{ full_name: fieldOfficerName }] = resultFieldOfficer;
+
 
   let queryGetCategories = `SELECT * FROM question_categories`;
   const [resultCategories] = await db.query(queryGetCategories);
@@ -184,7 +186,13 @@ const generateTestQuestions = async (req, res) => {
   for (const { category } of categories) {
     let queryGetCategoryId = `SELECT * FROM question_categories WHERE category = '${category}'`;
     const [[{ id: categoryId }]] = await db.query(queryGetCategoryId);
-    let queryGetRandomQuestions = `SELECT * FROM field_officers_questions WHERE category_id=${categoryId} ORDER BY rand() LIMIT 5`;
+    let queryGetRandomQuestions = `
+      SELECT field_officers_questions.id, field_officers_questions.question,  field_officers_questions.option1, field_officers_questions.option2, field_officers_questions.option3,
+      field_officers_questions.option4, field_officers_questions.option5, field_officers_questions.answer, question_categories.category
+      FROM field_officers_questions JOIN question_categories ON question_categories.id = field_officers_questions.category_id
+      WHERE field_officers_questions.category_id = ${categoryId}
+      ORDER BY rand() LIMIT 5
+    `;
     const [resultRandomQuestions] = await db.query(queryGetRandomQuestions);
     randomQuestions.push(...resultRandomQuestions);
   }
@@ -197,7 +205,10 @@ const generateTestQuestions = async (req, res) => {
   let queryInsertSession = `INSERT INTO sessions (password, field_officer_email) VALUES ('${password}', '${email}')`;
   const [{ insertId: sessionId }] = await db.query(queryInsertSession);
 
-  for (const { question, category_id: categoryId } of randomQuestions) {
+  for (const { question, category } of randomQuestions) {
+    let queryGetCategoryId = `SELECT * FROM question_categories WHERE category = '${category}'`;
+    const [[{ id: categoryId }]] = await db.query(queryGetCategoryId);
+
     let queryGetQuestion = `SELECT * FROM field_officers_questions WHERE question = "${question}"`;
     const [[{ id: questionId }]] = await db.query(queryGetQuestion);
     let queryInsertSessionQuestion = `INSERT INTO sessions_questions (session_id, question_id, category_id) VALUES (${sessionId}, ${questionId}, ${categoryId})`;
@@ -207,6 +218,7 @@ const generateTestQuestions = async (req, res) => {
   res.status(StatusCodes.CREATED).json({
     message: 'Success',
     fieldOfficerName,
+    questions: randomQuestions
   });
 };
 
