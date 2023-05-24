@@ -4,8 +4,6 @@ const { BadRequestError, ForbiddenError } = require('../errors');
 const cloudinary = require('cloudinary').v2;
 
 const uploadImage = async (req, res) => {
-  const { role } = req.user;
-
   if (role !== 'operator') {
     throw new ForbiddenError('You are not allowed to access this route');
   }

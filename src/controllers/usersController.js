@@ -16,11 +16,7 @@ const completeOperatorProfile = async (req, res) => {
     photo,
   } = req.body;
 
-  const { email, role } = req.user;
-
-  if (role !== 'operator') {
-    throw new ForbiddenError('You are not allowed to access this route');
-  }
+  const { email } = req.user;
 
   if (
     !fullName ||
@@ -46,7 +42,7 @@ const completeOperatorProfile = async (req, res) => {
   let queryOperator = `SELECT * FROM operators_details WHERE phone_number='${phoneNumber}'`;
   let [result] = await db.query(queryOperator);
 
-  if (result.length == 1)
+  if (result.length)
     throw new BadRequestError('Phone Number already exists.');
 
   let queryOperatorId = `SELECT id FROM users WHERE email='${email}' and role='operator'`;
@@ -81,11 +77,6 @@ const completeOperatorProfile = async (req, res) => {
 
 const verifyOperator = async (req, res) => {
   const { email, verified } = req.body;
-  const { role } = req.user;
-
-  if (role !== 'admin') {
-    throw new ForbiddenError('You are not allowed to access this route');
-  }
 
   let queryVerified = `SELECT * FROM operators_details WHERE email='${email}'`;
   let [[result]] = await db.query(queryVerified);

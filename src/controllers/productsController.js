@@ -1,14 +1,14 @@
 const db = require('../db/connect');
 const { StatusCodes } = require('http-status-codes');
-const { BadRequestError, ForbiddenError } = require('../errors');
+const { BadRequestError } = require('../errors');
 
 const selectProduct = async (req, res) => {
   const { product, seed } = req.body;
-  const { email, role } = req.user;
+  const { email } = req.user;
 
-  if (role !== 'operator') {
-    throw new ForbiddenError('You are not allowed to access this route');
-  }
+  // if (role !== 'operator') {
+  //   throw new ForbiddenError('You are not allowed to access this route');
+  // }
 
   let queryProductId = `SELECT id FROM products WHERE product='${product}'`;
   let querySeedId = `SELECT id FROM seeds WHERE seed='${seed}'`;
