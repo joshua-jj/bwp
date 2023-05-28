@@ -3,7 +3,7 @@ const {
   completeOperatorProfile,
   verifyOperator,
 } = require('../controllers/usersController');
-const { uploadImage } = require('../controllers/uploadsController');
+const {uploadOperatorPhoto, uploadImage } = require('../controllers/uploadsController');
 const authenticateToken = require('../middlewares/authMiddleware');
 const {
   restrictAccessOperator,
@@ -17,6 +17,9 @@ router
 router
   .route('/verifyOperator')
   .post(authenticateToken, restrictAccessAdmin, verifyOperator);
+router
+  .route('/uploadOperatorPhoto')
+  .post(authenticateToken, restrictAccessOperator, uploadOperatorPhoto);
 router
   .route('/uploadImage')
   .post(authenticateToken, restrictAccessOperator, uploadImage);

@@ -31,7 +31,9 @@ const selectProduct = async (req, res) => {
   let queryUpdateOperator = `UPDATE operators_details SET product_id=${productId}, seed_id='${seedId}' WHERE email='${email}'`;
   await db.query(queryUpdateOperator);
 
-  res.status(StatusCodes.CREATED).json({ message: 'Success' });
+  res
+    .status(StatusCodes.CREATED)
+    .json({ status: StatusCodes.CREATED, message: 'Success' });
 };
 
 module.exports = { selectProduct };

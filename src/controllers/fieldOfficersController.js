@@ -50,13 +50,13 @@ const recruitFieldOfficer = async (req, res) => {
     );
   }
 
-  let queryOperatorEmail = `SELECT * FROM field_officers_details WHERE email='${email}'`;
-  let [resultEmail] = await db.query(queryOperatorEmail);
+  let queryFieldOfficerEmail = `SELECT * FROM field_officers_details WHERE email='${email}'`;
+  let [resultEmail] = await db.query(queryFieldOfficerEmail);
 
   if (resultEmail.length) throw new BadRequestError('Email already exists.');
 
-  let queryOperatorNumber = `SELECT * FROM field_officers_details WHERE phone_number='${phoneNumber}'`;
-  let [resultNumber] = await db.query(queryOperatorNumber);
+  let queryFieldOfficerNumber = `SELECT * FROM field_officers_details WHERE phone_number='${phoneNumber}'`;
+  let [resultNumber] = await db.query(queryFieldOfficerNumber);
 
   if (resultNumber.length)
     throw new BadRequestError('Phone number already exists.');
@@ -106,7 +106,7 @@ const recruitFieldOfficer = async (req, res) => {
 
   await db.query(queryInsertFieldOfficer);
 
-  res.status(StatusCodes.CREATED).json({ message: 'Success' });
+  res.status(StatusCodes.CREATED).json({ status: StatusCodes.CREATED, message: 'Success' });
 };
 
 const getAllFieldOfficers = async (req, res) => {
@@ -130,7 +130,9 @@ const getAllFieldOfficers = async (req, res) => {
     WHERE unique_operator_id='${uniqueOperatorId}'
   `;
   const [data] = await db.query(queryGetAllFieldOfficers);
-  res.status(StatusCodes.OK).json({ message: 'Success', data });
+  res
+    .status(StatusCodes.OK)
+    .json({ status: StatusCodes.OK, message: 'Success', data });
 };
 
 const getAllFieldOfficersAdmin = async (req, res) => {
@@ -154,7 +156,9 @@ const getAllFieldOfficersAdmin = async (req, res) => {
   }
 
   const [data] = await db.query(queryGetAllFieldOfficers);
-  res.status(StatusCodes.OK).json({ message: 'Success', data });
+  res
+    .status(StatusCodes.OK)
+    .json({ status: StatusCodes.OK, message: 'Success', data });
 };
 
 const generateTestQuestions = async (req, res) => {
@@ -164,7 +168,7 @@ const generateTestQuestions = async (req, res) => {
 
   let queryGetFieldOfficer = `SELECT * FROM field_officers_details WHERE email = '${email}'`;
   const [resultFieldOfficer] = await db.query(queryGetFieldOfficer);
-  
+
   if (!resultFieldOfficer.length)
     throw new BadRequestError('No field officer exists with this email');
 
@@ -175,9 +179,8 @@ const generateTestQuestions = async (req, res) => {
     throw new BadRequestError(
       'Test has already been generated for this field officer'
     );
-  
-  const [{ full_name: fieldOfficerName }] = resultFieldOfficer;
 
+  const [{ full_name: fieldOfficerName }] = resultFieldOfficer;
 
   let queryGetCategories = `SELECT * FROM question_categories`;
   const [resultCategories] = await db.query(queryGetCategories);
@@ -216,9 +219,11 @@ const generateTestQuestions = async (req, res) => {
   }
 
   res.status(StatusCodes.CREATED).json({
+    status: StatusCodes.CREATED,
     message: 'Success',
     fieldOfficerName,
-    questions: randomQuestions
+    testPassword: password,
+    questions: randomQuestions,
   });
 };
 
@@ -233,7 +238,7 @@ const getTestQuestions = async (req, res) => {
   const [{ id: sessionId, test_score: testScore }] = resultQueryCandidate;
 
   if (testScore !== null) {
-    throw new BadRequestError('You have already taken this test');
+    throw new ForbiddenError('You have already taken this test');
   }
 
   let queryGetCandidateQuestion = `SELECT * FROM sessions_questions WHERE session_id = '${sessionId}'`;
@@ -250,7 +255,9 @@ const getTestQuestions = async (req, res) => {
     questions.push(result);
   }
 
-  res.status(StatusCodes.OK).json({ message: 'Success', questions });
+  res
+    .status(StatusCodes.OK)
+    .json({ status: StatusCodes.OK, message: 'Success', data: questions });
 };
 
 const submitTestAnswers = async (req, res) => {
@@ -266,7 +273,7 @@ const submitTestAnswers = async (req, res) => {
   const [{ id: sessionId, test_score: testScore }] = resultQueryCandidate;
 
   if (testScore !== null) {
-    throw new BadRequestError('You have already taken this test');
+    throw new ForbiddenError('You have already taken this test');
   }
 
   let queryGetCandidateQuestion = `SELECT * FROM sessions_questions WHERE session_id = '${sessionId}'`;
@@ -279,18 +286,25 @@ const submitTestAnswers = async (req, res) => {
   }
   candidateAnswers.push(...Object.values(req.body));
 
+  for (let i = 0; i < candidateAnswers.length; i++) {
+    const { session_id: sessionId, question_id: questionId } =
+      resultQueryQuestion[i];
+    let queryUpdateAnswer = `UPDATE sessions_questions SET field_officer_answer = '${candidateAnswers[i]}' WHERE session_id = ${sessionId} AND question_id = ${questionId}`;
+    await db.query(queryUpdateAnswer);
+  }
+
   for (let i = 0; i < correctAnswers.length; i++) {
     if (candidateAnswers[i] === correctAnswers[i]) {
       score++;
     }
   }
 
-  let queryUpdateScore = `UPDATE sessions SET test_score = ${score} where id=${sessionId}`;
+  let queryUpdateScore = `UPDATE sessions SET test_score = ${score} WHERE id=${sessionId}`;
   await db.query(queryUpdateScore);
 
   res.status(StatusCodes.OK).json({
+    status: StatusCodes.OK,
     message: 'Success',
-    status: 200,
     candidateAnswers,
   });
 };
@@ -303,11 +317,21 @@ const getTestScore = async (req, res) => {
   if (!resultQueryCandidate.length)
     throw new BadRequestError('No field officer exists with this email');
 
-  const [{ test_score: testScore }] = resultQueryCandidate;
+  const [{ id: sessionId, test_score: testScore }] = resultQueryCandidate;
+
+  let queryGetQuestions = `SELECT * FROM sessions_questions WHERE session_id = ${sessionId}`;
+  const [resultQueryQuestions] = await db.query(queryGetQuestions);
+
+  const scorePercentage = Math.round((testScore * 100) / resultQueryQuestions.length);
 
   res
     .status(StatusCodes.OK)
-    .json({ message: 'Success', status: 200, testScore });
+    .json({
+      status: StatusCodes.OK,
+      message: 'Success',
+      testScore,
+      scorePercentage: `${scorePercentage}%`,
+    });
 };
 module.exports = {
   recruitFieldOfficer,

@@ -51,7 +51,9 @@ const signUp = async (req, res) => {
   const token = jwt.sign({ id, email, role }, process.env.ACCESS_TOKEN_SECRET, {
     expiresIn: process.env.ACCESS_TOKEN_LIFETIME,
   });
-  res.status(StatusCodes.CREATED).json({ message: 'User created', token });
+  res
+    .status(StatusCodes.CREATED)
+    .json({ status: StatusCodes.CREATED, message: 'User created', token });
 };
 
 // Function to log in operators
@@ -75,7 +77,11 @@ const login = async (req, res) => {
   });
   res
     .status(StatusCodes.OK)
-    .json({ message: `${email} logged in successfully`, token });
+    .json({
+      status: StatusCodes.OK,
+      message: `${email} logged in successfully`,
+      token,
+    });
 };
 
 // Function to sign up admins
@@ -125,7 +131,9 @@ const signUpAdmin = async (req, res) => {
   const token = jwt.sign({ id, email, role }, process.env.ACCESS_TOKEN_SECRET, {
     expiresIn: process.env.ACCESS_TOKEN_LIFETIME,
   });
-  res.status(StatusCodes.CREATED).json({ message: 'Admin created', token });
+  res
+    .status(StatusCodes.CREATED)
+    .json({ status: StatusCodes.CREATED, message: 'Admin created', token });
 };
 
 // Function to log in admins
@@ -149,7 +157,11 @@ const loginAdmin = async (req, res) => {
   });
   res
     .status(StatusCodes.OK)
-    .json({ message: `${email} logged in successfully`, token });
+    .json({
+      status: StatusCodes.OK,
+      message: `${email} logged in successfully`,
+      token,
+    });
 };
 
 const loginTest = async (req, res) => {
@@ -172,7 +184,9 @@ const loginTest = async (req, res) => {
   const token = jwt.sign({ id, email, role }, process.env.ACCESS_TOKEN_SECRET, {
     expiresIn: process.env.ACCESS_TOKEN_LIFETIME,
   });
-  res.status(StatusCodes.OK).json({ message: 'Success', status: 200, token });
+  res
+    .status(StatusCodes.OK)
+    .json({ status: StatusCodes.OK, message: 'Success', token });
 };
 
 module.exports = {
