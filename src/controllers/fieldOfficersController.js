@@ -375,7 +375,7 @@ const getTestScore = async (req, res) => {
     status: StatusCodes.OK,
     message: 'Success',
     testScore,
-    scorePercentage: `${scorePercentage}%`,
+    testScorePercentage: `${scorePercentage}%`,
   });
 };
 module.exports = {
