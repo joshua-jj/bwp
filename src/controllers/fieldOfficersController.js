@@ -36,8 +36,6 @@ const recruitFieldOfficer = async (req, res) => {
     throw new BadRequestError('Please provide all fields.');
   }
 
-  console.log(governmentId);
-
   const regexEmail = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/;
 
   if (!regexEmail.test(email)) {
