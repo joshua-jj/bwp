@@ -108,6 +108,12 @@ const recruitFieldOfficer = async (req, res) => {
     }
   }
 
+  let queryGovernmentId = `SELECT * FROM field_officers_details WHERE government_identification_id='${governmentId}'`;
+  let [resultGovernmentId] = await db.query(queryGovernmentId);
+
+  if (resultGovernmentId.length)
+    throw new BadRequestError('Government id already exists.');
+
   // Validate hub
   let queryHubId = `SELECT id FROM hubs WHERE hub='${hub}'`;
   const [[hubQuery]] = await db.query(queryHubId);
