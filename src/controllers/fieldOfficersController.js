@@ -50,16 +50,16 @@ const recruitFieldOfficer = async (req, res) => {
     );
   }
 
-  // let queryFieldOfficerEmail = `SELECT * FROM field_officers_details WHERE email='${email}'`;
-  // let [resultEmail] = await db.query(queryFieldOfficerEmail);
+  let queryFieldOfficerEmail = `SELECT * FROM field_officers_details WHERE email='${email}'`;
+  let [resultEmail] = await db.query(queryFieldOfficerEmail);
 
-  // if (resultEmail.length) throw new BadRequestError('Email already exists.');
+  if (resultEmail.length) throw new BadRequestError('Email already exists.');
 
-  // let queryFieldOfficerNumber = `SELECT * FROM field_officers_details WHERE phone_number='${phoneNumber}'`;
-  // let [resultNumber] = await db.query(queryFieldOfficerNumber);
+  let queryFieldOfficerNumber = `SELECT * FROM field_officers_details WHERE phone_number='${phoneNumber}'`;
+  let [resultNumber] = await db.query(queryFieldOfficerNumber);
 
-  // if (resultNumber.length)
-  //   throw new BadRequestError('Phone number already exists.');
+  if (resultNumber.length)
+    throw new BadRequestError('Phone number already exists.');
 
   let queryStateId = `SELECT id FROM states WHERE state='${state}'`;
   let queryLgaId = `SELECT id FROM lgas WHERE lga='${lga}'`;
