@@ -16,7 +16,6 @@ const recruitFieldOfficer = async (req, res) => {
     hub,
     governmentId,
     governmentIdType,
-    governmentIdImage,
   } = req.body;
 
   const { id: userId } = req.user;
@@ -32,11 +31,12 @@ const recruitFieldOfficer = async (req, res) => {
     !lga ||
     !hub ||
     !governmentId ||
-    !governmentIdType ||
-    !governmentIdImage
+    !governmentIdType
   ) {
     throw new BadRequestError('Please provide all fields.');
   }
+
+  console.log(governmentId);
 
   const regexEmail = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/;
 
@@ -50,16 +50,16 @@ const recruitFieldOfficer = async (req, res) => {
     );
   }
 
-  let queryFieldOfficerEmail = `SELECT * FROM field_officers_details WHERE email='${email}'`;
-  let [resultEmail] = await db.query(queryFieldOfficerEmail);
+  // let queryFieldOfficerEmail = `SELECT * FROM field_officers_details WHERE email='${email}'`;
+  // let [resultEmail] = await db.query(queryFieldOfficerEmail);
 
-  if (resultEmail.length) throw new BadRequestError('Email already exists.');
+  // if (resultEmail.length) throw new BadRequestError('Email already exists.');
 
-  let queryFieldOfficerNumber = `SELECT * FROM field_officers_details WHERE phone_number='${phoneNumber}'`;
-  let [resultNumber] = await db.query(queryFieldOfficerNumber);
+  // let queryFieldOfficerNumber = `SELECT * FROM field_officers_details WHERE phone_number='${phoneNumber}'`;
+  // let [resultNumber] = await db.query(queryFieldOfficerNumber);
 
-  if (resultNumber.length)
-    throw new BadRequestError('Phone number already exists.');
+  // if (resultNumber.length)
+  //   throw new BadRequestError('Phone number already exists.');
 
   let queryStateId = `SELECT id FROM states WHERE state='${state}'`;
   let queryLgaId = `SELECT id FROM lgas WHERE lga='${lga}'`;
@@ -80,12 +80,35 @@ const recruitFieldOfficer = async (req, res) => {
   if (stateId !== lgaStateId)
     throw new BadRequestError(`${lga} LGA does not belong to ${state} State`);
 
+  // Validate Government ID Type
+
   let queryGovernmentIdType = `SELECT id FROM government_id_types WHERE id_type="${governmentIdType}"`;
   const [[idTypeQuery]] = await db.query(queryGovernmentIdType);
 
   if (!idTypeQuery)
-    throw new BadRequestError(`Government Identification type is invalid`);
+    throw new BadRequestError('Government Identification type is invalid');
   const { id: identificationTypeId } = idTypeQuery;
+
+  // Validate Government ID
+  let regexId = /^(?=.*[A-Z])(?=.*\d).+$/;
+
+  if (governmentIdType.toLowerCase() === "permanent voter's card") {
+    if (governmentId.length !== 16 || !regexId.test(governmentId)) {
+      throw new BadRequestError('Government Id is invalid');
+    }
+  }
+
+  if (governmentIdType.toLowerCase() === "driver's license") {
+    if (governmentId.length !== 12 || !regexId.test(governmentId)) {
+      throw new BadRequestError('Government Id is invalid');
+    }
+  }
+
+  if (governmentIdType.toLowerCase() === 'international passport') {
+    if (governmentId.length !== 9 || !regexId.test(governmentId)) {
+      throw new BadRequestError('Government Id is invalid');
+    }
+  }
 
   // Validate hub
   let queryHubId = `SELECT id FROM hubs WHERE hub='${hub}'`;
@@ -102,11 +125,13 @@ const recruitFieldOfficer = async (req, res) => {
   let querySexId = `SELECT id FROM sex WHERE sex='${sex}'`;
   const [[{ id: sexId }]] = await db.query(querySexId);
 
-  let queryInsertFieldOfficer = `INSERT INTO field_officers_details (full_name, email, phone_number, sex_id, date_of_birth, bvn, state_id, lga_id, hub_id, government_identification_id, government_identification_type_id, government_identification_image, unique_operator_id) VALUES ('${fullName}', '${phoneNumber}', ${sexId}, '${dateOfBirth}', '${bvn}', ${stateId}, ${lgaId}, ${hubId}, '${governmentId}', ${identificationTypeId}, '${governmentIdImage}', '${uniqueOperatorId}')`;
+  let queryInsertFieldOfficer = `INSERT INTO field_officers_details (full_name, email, phone_number, sex_id, date_of_birth, bvn, state_id, lga_id, hub_id, government_identification_id, government_identification_type_id, unique_operator_id) VALUES ('${fullName}', '${phoneNumber}', ${sexId}, '${dateOfBirth}', '${bvn}', ${stateId}, ${lgaId}, ${hubId}, '${governmentId}', ${identificationTypeId}, '${uniqueOperatorId}')`;
 
   await db.query(queryInsertFieldOfficer);
 
-  res.status(StatusCodes.CREATED).json({ status: StatusCodes.CREATED, message: 'Success' });
+  res
+    .status(StatusCodes.CREATED)
+    .json({ status: StatusCodes.CREATED, message: 'Success' });
 };
 
 const getAllFieldOfficers = async (req, res) => {
@@ -120,13 +145,14 @@ const getAllFieldOfficers = async (req, res) => {
   let queryGetAllFieldOfficers = `
     SELECT field_officers_details.id, field_officers_details.full_name, field_officers_details.email, field_officers_details.phone_number, sex.sex, field_officers_details.date_of_birth, field_officers_details.bvn, 
     states.state, lgas.lga, hubs.hub, field_officers_details.government_identification_id AS government_id, government_id_types.id_type AS government_id_type,
-    field_officers_details.government_identification_image AS government_id_image, field_officers_details.unique_operator_id, field_officers_details.verified, field_officers_details.unique_field_officer_id
+    field_officers_government_id_images.image AS government_id_image, field_officers_details.unique_operator_id, field_officers_details.verified, field_officers_details.unique_field_officer_id
     FROM field_officers_details
-    JOIN sex ON sex.id=field_officers_details.sex_id
-    JOIN states ON states.id=field_officers_details.state_id
-    JOIN lgas ON lgas.id=field_officers_details.lga_id
-    JOIN hubs ON hubs.id=field_officers_details.hub_id
-    JOIN government_id_types ON government_id_types.id=field_officers_details.government_identification_type_id
+    LEFT JOIN sex ON sex.id=field_officers_details.sex_id
+    LEFT JOIN states ON states.id=field_officers_details.state_id
+    LEFT JOIN lgas ON lgas.id=field_officers_details.lga_id
+    LEFT JOIN hubs ON hubs.id=field_officers_details.hub_id
+    LEFT JOIN government_id_types ON government_id_types.id=field_officers_details.government_identification_type_id
+    LEFT JOIN field_officers_government_id_images ON field_officers_government_id_images.email=field_officers_details.email
     WHERE unique_operator_id='${uniqueOperatorId}'
   `;
   const [data] = await db.query(queryGetAllFieldOfficers);
@@ -139,16 +165,16 @@ const getAllFieldOfficersAdmin = async (req, res) => {
   const { q } = req.query;
 
   let queryGetAllFieldOfficers = `
-    SELECT field_officers_details.id, field_officers_details.full_name AS field_officer_name, field_officers_details.email, field_officers_details.phone_number, sex.sex, field_officers_details.date_of_birth, field_officers_details.bvn, states.state, lgas.lga, hubs.hub, field_officers_details.government_identification_id AS government_id, government_id_types.id_type AS government_id_type,
-    field_officers_details.government_identification_image AS government_id_image, field_officers_details.verified, field_officers_details.unique_field_officer_id, 
-    field_officers_details.unique_operator_id AS unique_operator_id, operators_details.full_name AS operator_name
+    SELECT field_officers_details.id, field_officers_details.full_name, field_officers_details.email, field_officers_details.phone_number, sex.sex, field_officers_details.date_of_birth, field_officers_details.bvn, 
+    states.state, lgas.lga, hubs.hub, field_officers_details.government_identification_id AS government_id, government_id_types.id_type AS government_id_type,
+    field_officers_government_id_images.image AS government_id_image, field_officers_details.unique_operator_id, field_officers_details.verified, field_officers_details.unique_field_officer_id
     FROM field_officers_details
-    JOIN sex ON sex.id=field_officers_details.sex_id
-    JOIN states ON states.id=field_officers_details.state_id
-    JOIN lgas ON lgas.id=field_officers_details.lga_id
-    JOIN hubs ON hubs.id=field_officers_details.hub_id
-    JOIN government_id_types ON government_id_types.id=field_officers_details.government_identification_type_id
-    JOIN operators_details ON operators_details.unique_operator_id = field_officers_details.unique_operator_id
+    LEFT JOIN sex ON sex.id=field_officers_details.sex_id
+    LEFT JOIN states ON states.id=field_officers_details.state_id
+    LEFT JOIN lgas ON lgas.id=field_officers_details.lga_id
+    LEFT JOIN hubs ON hubs.id=field_officers_details.hub_id
+    LEFT JOIN government_id_types ON government_id_types.id=field_officers_details.government_identification_type_id
+    LEFT JOIN field_officers_government_id_images ON field_officers_government_id_images.email=field_officers_details.email
   `;
 
   if (q) {
@@ -228,7 +254,8 @@ const generateTestQuestions = async (req, res) => {
 };
 
 const getTestQuestions = async (req, res) => {
-  const { email } = req.user;
+  const { email, role } = req.user;
+  console.log(role);
 
   const questions = [];
 
@@ -322,16 +349,16 @@ const getTestScore = async (req, res) => {
   let queryGetQuestions = `SELECT * FROM sessions_questions WHERE session_id = ${sessionId}`;
   const [resultQueryQuestions] = await db.query(queryGetQuestions);
 
-  const scorePercentage = Math.round((testScore * 100) / resultQueryQuestions.length);
+  const scorePercentage = Math.round(
+    (testScore * 100) / resultQueryQuestions.length
+  );
 
-  res
-    .status(StatusCodes.OK)
-    .json({
-      status: StatusCodes.OK,
-      message: 'Success',
-      testScore,
-      scorePercentage: `${scorePercentage}%`,
-    });
+  res.status(StatusCodes.OK).json({
+    status: StatusCodes.OK,
+    message: 'Success',
+    testScore,
+    scorePercentage: `${scorePercentage}%`,
+  });
 };
 module.exports = {
   recruitFieldOfficer,

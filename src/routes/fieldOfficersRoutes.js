@@ -8,6 +8,7 @@ const {
   submitTestAnswers,
   getTestScore,
 } = require('../controllers/fieldOfficersController');
+const { uploadFieldOfficerGovId } = require('../controllers/uploadsController');
 
 const authenticateToken = require('../middlewares/authMiddleware');
 
@@ -24,6 +25,10 @@ router
   .post(authenticateToken, restrictAccessOperator, recruitFieldOfficer)
   .get(authenticateToken, restrictAccessOperator, getAllFieldOfficers);
 
+  router
+    .route('/uploadFieldOfficerGovId')
+    .post(authenticateToken, restrictAccessOperator, uploadFieldOfficerGovId);
+
 router
   .route('/admin/fieldOfficers')
   .get(authenticateToken, restrictAccessAdmin, getAllFieldOfficersAdmin);
@@ -32,10 +37,9 @@ router
   .route('/admin/fieldOfficers/test/generateTestQuestions')
   .post(authenticateToken, restrictAccessAdmin, generateTestQuestions);
 
-  router
-    .route('/admin/fieldOfficers/test/score')
-    .get(authenticateToken, restrictAccessAdmin, getTestScore);
-
+router
+  .route('/admin/fieldOfficers/test/score')
+  .get(authenticateToken, restrictAccessAdmin, getTestScore);
 
 router
   .route('/fieldOfficers/test/questions')
@@ -43,7 +47,6 @@ router
 
 router
   .route('/fieldOfficers/test/submitTestAnswers')
-  .patch(authenticateToken,restrictAccessTestCandidate, submitTestAnswers);
-
+  .patch(authenticateToken, restrictAccessTestCandidate, submitTestAnswers);
 
 module.exports = router;
