@@ -192,10 +192,11 @@ const getAllFieldOfficersAdmin = async (req, res) => {
     LEFT JOIN hubs ON hubs.id=field_officers_details.hub_id
     LEFT JOIN government_id_types ON government_id_types.id=field_officers_details.government_identification_type_id
     LEFT JOIN field_officers_government_id_images ON field_officers_government_id_images.email=field_officers_details.email
+    LEFT JOIN operators_details ON operators_details.unique_operator_id = field_officers_details.unique_operator_id
   `;
 
   if (q) {
-    queryGetAllFieldOfficers = `${queryGetAllFieldOfficers} WHERE operators_details.unique_operator_id LIKE '%${q}%' OR operators_details.full_name LIKE '%${q}%'`;
+    queryGetAllFieldOfficers = `${queryGetAllFieldOfficers} WHERE field_officers_details.unique_operator_id LIKE '%${q}%' OR operators_details.full_name LIKE '%${q}%'`;
   }
 
   const [data] = await db.query(queryGetAllFieldOfficers);
