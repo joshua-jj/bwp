@@ -36,16 +36,11 @@ const recruitFieldOfficer = async (req, res) => {
     throw new BadRequestError('Please provide all fields.');
   }
 
+  // Validate email
   const regexEmail = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/;
 
   if (!regexEmail.test(email)) {
     throw new BadRequestError('Please provide a valid email');
-  }
-
-  if (sex.toLowerCase() !== 'male' && sex.toLowerCase() !== 'female') {
-    throw new BadRequestError(
-      `${sex} is invalid. Please provide a valid sex (Male or Female)`
-    );
   }
 
   let queryFieldOfficerEmail = `SELECT * FROM field_officers_details WHERE email='${email}'`;
@@ -53,11 +48,29 @@ const recruitFieldOfficer = async (req, res) => {
 
   if (resultEmail.length) throw new BadRequestError('Email already exists.');
 
+  // Validate sex
+  if (sex.toLowerCase() !== 'male' && sex.toLowerCase() !== 'female') {
+    throw new BadRequestError(
+      `${sex} is invalid. Please provide a valid sex (Male or Female)`
+    );
+  }
+
   let queryFieldOfficerNumber = `SELECT * FROM field_officers_details WHERE phone_number='${phoneNumber}'`;
   let [resultNumber] = await db.query(queryFieldOfficerNumber);
 
   if (resultNumber.length)
     throw new BadRequestError('Phone number already exists.');
+
+  // Validate BVN
+  const regexBvn = /^\d+$/;
+
+  if (bvn.length !== 11 || !regexBvn.test(bvn)) {
+    throw new BadRequestError('BVN is invalid');
+  }
+
+  let queryFieldOfficerBvn = `SELECT * FROM field_officers_details WHERE bvn='${bvn}'`;
+  let [resultBvn] = await db.query(queryFieldOfficerBvn);
+  if (resultBvn.length) throw new BadRequestError('BVN already exists.');
 
   let queryStateId = `SELECT id FROM states WHERE state='${state}'`;
   let queryLgaId = `SELECT id FROM lgas WHERE lga='${lga}'`;
@@ -129,7 +142,7 @@ const recruitFieldOfficer = async (req, res) => {
   let querySexId = `SELECT id FROM sex WHERE sex='${sex}'`;
   const [[{ id: sexId }]] = await db.query(querySexId);
 
-  let queryInsertFieldOfficer = `INSERT INTO field_officers_details (full_name, email, phone_number, sex_id, date_of_birth, bvn, state_id, lga_id, hub_id, government_identification_id, government_identification_type_id, unique_operator_id) VALUES ('${fullName}', '${phoneNumber}', ${sexId}, '${dateOfBirth}', '${bvn}', ${stateId}, ${lgaId}, ${hubId}, '${governmentId}', ${identificationTypeId}, '${uniqueOperatorId}')`;
+  let queryInsertFieldOfficer = `INSERT INTO field_officers_details (full_name, email, phone_number, sex_id, date_of_birth, bvn, state_id, lga_id, hub_id, government_identification_id, government_identification_type_id, unique_operator_id) VALUES ('${fullName}', '${email}', '${phoneNumber}', ${sexId}, '${dateOfBirth}', '${bvn}', ${stateId}, ${lgaId}, ${hubId}, '${governmentId}', ${identificationTypeId}, '${uniqueOperatorId}')`;
 
   await db.query(queryInsertFieldOfficer);
 
