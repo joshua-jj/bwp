@@ -40,7 +40,7 @@ const uploadOperatorPhoto = async (req, res) => {
 };
 
 const uploadFieldOfficerGovId = async (req, res) => {
-  const { email } = req.query;
+  const { email } = req.body;
   if (!email) throw new BadRequestError('Please provide all fields.');
 
   const regexEmail = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/;

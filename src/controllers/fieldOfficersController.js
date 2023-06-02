@@ -272,8 +272,7 @@ const generateTestQuestions = async (req, res) => {
 };
 
 const getTestQuestions = async (req, res) => {
-  const { email, role } = req.user;
-  console.log(role);
+  const { email } = req.user;
 
   const questions = [];
 
@@ -308,8 +307,6 @@ const getTestQuestions = async (req, res) => {
 const submitTestAnswers = async (req, res) => {
   const { email } = req.user;
 
-  const correctAnswers = [];
-  const candidateAnswers = [];
   let score = 0;
 
   let queryGetCandidate = `SELECT * FROM sessions WHERE field_officer_email = '${email}'`;
@@ -321,27 +318,13 @@ const submitTestAnswers = async (req, res) => {
     throw new ForbiddenError('You have already taken this test');
   }
 
-  let queryGetCandidateQuestion = `SELECT * FROM sessions_questions WHERE session_id = '${sessionId}'`;
-  const [resultQueryQuestion] = await db.query(queryGetCandidateQuestion);
-
-  for (const { question_id: questionId } of resultQueryQuestion) {
+  for (const [id, answer] of Object.entries(req.body)) {
+    const questionId = Number(id);
+    let queryUpdateAnswer = `UPDATE sessions_questions SET field_officer_answer = '${answer}' WHERE session_id = ${sessionId} AND question_id = ${questionId}`;
+    await db.query(queryUpdateAnswer);
     let queryQuestions = `SELECT * FROM field_officers_questions WHERE id = ${questionId}`;
     const [[result]] = await db.query(queryQuestions);
-    correctAnswers.push(result.answer);
-  }
-  candidateAnswers.push(...Object.values(req.body));
-
-  for (let i = 0; i < candidateAnswers.length; i++) {
-    const { session_id: sessionId, question_id: questionId } =
-      resultQueryQuestion[i];
-    let queryUpdateAnswer = `UPDATE sessions_questions SET field_officer_answer = '${candidateAnswers[i]}' WHERE session_id = ${sessionId} AND question_id = ${questionId}`;
-    await db.query(queryUpdateAnswer);
-  }
-
-  for (let i = 0; i < correctAnswers.length; i++) {
-    if (candidateAnswers[i] === correctAnswers[i]) {
-      score++;
-    }
+    if (answer === result.answer) score++;
   }
 
   let queryUpdateScore = `UPDATE sessions SET test_score = ${score} WHERE id=${sessionId}`;
@@ -350,7 +333,7 @@ const submitTestAnswers = async (req, res) => {
   res.status(StatusCodes.OK).json({
     status: StatusCodes.OK,
     message: 'Success',
-    candidateAnswers,
+    score,
   });
 };
 
