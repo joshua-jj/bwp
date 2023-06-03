@@ -21,13 +21,16 @@ const {
 const router = express.Router();
 
 router
+  .route('/fieldOfficers/recruit')
+  .post(authenticateToken, restrictAccessOperator, recruitFieldOfficer);
+
+router
   .route('/fieldOfficers')
-  .post(authenticateToken, restrictAccessOperator, recruitFieldOfficer)
   .get(authenticateToken, restrictAccessOperator, getAllFieldOfficers);
 
-  router
-    .route('/uploadFieldOfficerGovId')
-    .post(authenticateToken, restrictAccessOperator, uploadFieldOfficerGovId);
+router
+  .route('/uploadFieldOfficerGovId')
+  .post(authenticateToken, restrictAccessOperator, uploadFieldOfficerGovId);
 
 router
   .route('/admin/fieldOfficers')
@@ -46,7 +49,7 @@ router
   .get(authenticateToken, restrictAccessTestCandidate, getTestQuestions);
 
 router
-  .route('/fieldOfficers/test/submitTestAnswers')
+  .route('/fieldOfficers/test/submit')
   .patch(authenticateToken, restrictAccessTestCandidate, submitTestAnswers);
 
 module.exports = router;
