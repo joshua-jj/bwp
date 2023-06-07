@@ -319,7 +319,7 @@ const submitTestAnswers = async (req, res) => {
   }
 
   for (const [id, answer] of Object.entries(req.body)) {
-    const questionId = Number(id);
+    const questionId = +id;
     let queryUpdateAnswer = `UPDATE sessions_questions SET field_officer_answer = '${answer}' WHERE session_id = ${sessionId} AND question_id = ${questionId}`;
     await db.query(queryUpdateAnswer);
     let queryQuestions = `SELECT * FROM field_officers_questions WHERE id = ${questionId}`;
